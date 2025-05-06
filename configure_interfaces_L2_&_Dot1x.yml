@@ -1,0 +1,106 @@
+- hosts: all #change to your host group
+  collections:
+    - arubanetworks.aoscx
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  gather_facts: False
+  #the below tasks are for creating VLANs and configuring interfaces for trunking and for dot1x using a hibrid approach. We use modules to create VLANs and configure interfaces, but we use CLI to configure dot1x.
+  tasks:
+    - name: Create VLAN 10
+      aoscx_vlan:
+        vlan_id: 10
+        name: Data
+
+    - name: Create VLAN 20
+      aoscx_vlan:
+        vlan_id: 20
+        description: Voice
+
+    - name: Configure Interface 1/1/10
+      aoscx_l2_interface:
+        interface: 1/1/10
+        vlan_mode: trunk
+        vlan_trunks: ['10','20']
+        native_vlan_id: '10'
+    - name: Configure Interface 1/1/11
+      aoscx_l2_interface:
+        interface: 1/1/11
+        vlan_mode: trunk
+        vlan_trunks: ['10','20']
+        native_vlan_id: '10'
+    - name: Configure Interface 1/1/12
+      aoscx_l2_interface:
+        interface: 1/1/12
+        vlan_mode: trunk
+        vlan_trunks: ['10','20']
+        native_vlan_id: '10'
+    - name: Configure Interface 1/1/13
+      aoscx_l2_interface:
+        interface: 1/1/13
+        vlan_mode: trunk
+        vlan_trunks: ['10','20']
+        native_vlan_id: '10'
+    - name: Configure Interface 1/1/14
+      aoscx_l2_interface:
+        interface: 1/1/14
+        vlan_mode: trunk
+        vlan_trunks: ['10','20']
+        native_vlan_id: '10'
+    - name: Configure Interface 1/1/15
+      aoscx_l2_interface:
+        interface: 1/1/12
+        vlan_mode: trunk
+        vlan_trunks: ['10','20']
+        native_vlan_id: '10'
+        
+#using CLI to configure Dot1x
+- hosts: all
+  collections:
+    - arubanetworks.aoscx
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_connection: network_cli
+  gather_facts: False
+  tasks:      
+    - name: Hostname
+      aoscx_command:
+        commands: ['config','hostname yourhost','end']
+
+    - name: Configure Dot1x Global     
+      aoscx_config:
+        diff_against: running
+        lines:
+          - radius-server host 10.32.48.50 key plaintext ansibletest
+          - aaa accounting port-access start-stop interim 1 group CPPM_R
+          - aaa group server radius CPPM_R
+          - server 10.32.48.50
+        parents:
+          - aaa group server radius CPPM_R
+        match: line
+        replace: line
+        save_when: modified
+
+    - name: Configure Dot1x interfaces      
+      aoscx_config:
+        diff_against: running 
+        lines:
+          - interface 1/1/10-1/1/15                
+          - aaa authentication port-access allow-cdp-bpdu
+          - aaa authentication port-access allow-lldp-bpdu
+          - no aaa authentication port-access allow-lldp-auth
+          - aaa authentication port-access client-limit 256
+          - port-access allow-flood-traffic disable
+          - aaa authentication port-access dot1x authenticator cached-reauth
+          - aaa authentication port-access dot1x authenticator cached-reauth-period 60
+          - aaa authentication port-access dot1x authenticator eapol-timeout 10
+          - aaa authentication port-access dot1x authenticator max-eapol-requests 1
+          - aaa authentication port-access dot1x authenticator max-retries 1
+          - aaa authentication port-access dot1x authenticator quiet-period 3600
+          - aaa authentication port-access dot1x authenticator discovery-period 10
+          - aaa authentication port-access dot1x authenticator disable
+          - aaa authentication port-access mac-auth quiet-period 3600
+          - aaa authentication port-access mac-auth enable
+        parents:
+          - interface 1/1/10-1/1/15
+        match: line
+        save_when: modified
