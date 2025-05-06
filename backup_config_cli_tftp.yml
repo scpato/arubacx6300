@@ -1,0 +1,14 @@
+---
+- hosts: all
+  collections:
+    - arubanetworks.aoscx
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_connection: arubanetworks.aoscx.aoscx
+  tasks:
+   - name: Copy Running Config to TFTP server as CLI
+     aoscx_backup_config:
+       config_name: running-config
+       remote_output_file_tftp_path: tftp://10.X.X.X/backups/{{ inventory_hostname }}_{{ '%Y-%m-%dh%H' | strftime }}.cfg #this is an example, please change the IP address to your TFTP server. This example includes adding hostname and timestamp to the filename.
+       config_type: cli
+       vrf: mgmt
