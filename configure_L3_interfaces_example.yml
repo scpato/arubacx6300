@@ -1,0 +1,49 @@
+---
+- hosts: BD01
+  collections:
+    - arubanetworks.aoscx
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_connection: arubanetworks.aoscx.aoscx
+  gather_facts: False
+  tasks:
+    - name: Configure L3 interface 1/1/3 with IPv4 and IPv6 address
+      aoscx_l3_interface:
+        interface: 1/1/1
+        description: Uplink to Leaf1
+        ipv4: ['10.10.1.2/25']
+        # ipv6: ['2000:db8::1234/64']
+
+    - name: Configure IP Helper Address on Interface 1/1/3
+      aoscx_l3_interface:
+        interface: 1/1/3
+        ip_helper_address: ['172.1.2.32']
+
+    - name: Configure L3 interface 1/1/2 with IPv4
+      aoscx_l3_interface:
+        interface: 1/1/2
+        description: Downlink to Leaf2
+        ipv4: ['10.10.1.130/25']
+    
+    - name: Create loopback interfaces
+      aoscx_l3_interface:
+        interface: loopback0
+        ipv4: ['192.168.1.1/32']
+
+    - name: Configure L3 interface Vlan10 with IPv4
+      aoscx_l3_interface:
+        interface: Vlan10
+        description: Data
+        ipv4: ['10.32.1.2/24']
+    
+    - name: Configure L3 interface Vlan20 with IPv4
+      aoscx_l3_interface:
+        interface: Vlan20
+        description: Voice
+        ipv4: ['10.32.2.2/24']
+
+    - name: Administratively enable interfaces 1/1/1-1/1/2
+      aoscx_interface:
+        name: "{{item}}"
+        enabled: true
+      loop: ['1/1/1', '1/1/2']

@@ -1,0 +1,36 @@
+---
+- name: Check Interface Configuration Compliance on Aruba Switches
+  hosts: all # Replace with your target hosts
+  collections:
+    - arubanetworks.aoscx
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_connection: network_cli
+  gather_facts: False
+
+  tasks:
+
+    - name: Diff the running-config against a provided config
+      aoscx_config:
+        diff_against: intended
+        intended_config: "{{playbook_dir}}/intended/intended_config.txt"  # Path to the baseline configuration file. {{playbook_dir}} is the directory of the playbook.
+      register: diff_result
+
+    - name: Print return information from the previous task
+      ansible.builtin.debug:
+        var: diff_result
+        verbosity: 2
+
+    - name: Print
+      ansible.builtin.debug:
+        msg: "The diff result is {{ diff_result }}"
+        verbosity: 2
+
+    -  name: write to file
+       ansible.builtin.copy:
+        content: "{{ diff_result }}"
+        dest: "{{playbook_dir}}/backups/{{ inventory_hostname }}_{{ '%Y-%m-%dh%H' | strftime }}.txt"
+        directory_mode: '0755'
+
+#This playbook worked in my lab, however you need to change the format of the files otherwise it will work partially.
+#The diff result is a dictionary, so you need to convert it to a string before writing it to a file.

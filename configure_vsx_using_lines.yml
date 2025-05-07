@@ -1,0 +1,30 @@
+---
+- hosts: all #use your inventory group name here
+  collections:
+    - arubanetworks.aoscx
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_connection: network_cli
+  gather_facts: False
+
+  tasks:
+
+  - name: VSX
+    aoscx_config:
+      lines:
+        - vrf KA
+        - vsx
+        - system-mac 00:00:00:00:00:01
+        - inter-switch-link 1/1/5
+        - role primary
+        - keepalive peer 192.168.100.2 source 192.168.100.1 vrf KA
+        - vsx-sync snmp vsx-global
+        - exit
+        - interface 1/1/5
+        - description VSX keepalive
+        - no shutdown
+        - routing
+        - vrf attach KA
+        - ip address 192.168.100.1/30
+        - exit
+      match: line
